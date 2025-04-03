@@ -16,5 +16,15 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
         emit(WeatherErrorState(e.toString()));
       }
     });
+
+    on<FetchForecastEvent>((event, emit) async {
+      emit(ForecastLoadingState());
+      try {
+        final forecast = await weatherService.fetchForecast(event.city);
+        emit(ForecastLoadedState(forecast));
+      } catch (e) {
+        emit(ForecastErrorState(e.toString()));
+      }
+    });
   }
 }

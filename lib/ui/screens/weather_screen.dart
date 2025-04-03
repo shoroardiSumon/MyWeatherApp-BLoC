@@ -5,6 +5,7 @@ import 'package:myweather/core/bloc/theme/theme_event.dart';
 import 'package:myweather/core/bloc/weather/weather_bloc.dart';
 import 'package:myweather/core/bloc/weather/weather_event.dart';
 import 'package:myweather/core/bloc/weather/weather_state.dart';
+import 'package:myweather/core/utils/methods.dart';
 
 class WeatherScreen extends StatelessWidget {
   const WeatherScreen({super.key});
@@ -28,55 +29,97 @@ class WeatherScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Form(
-              key: _formKey,
-              child: TextFormField(
-                controller: cityController,
-                decoration: const InputDecoration(
-                  labelText: "Enter City Name",
-                  border: OutlineInputBorder(),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              Form(
+                key: _formKey,
+                child: TextFormField(
+                  controller: cityController,
+                  decoration: const InputDecoration(
+                    labelText: "Enter City Name",
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Please enter a city name";
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Please enter a city name";
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    context.read<WeatherBloc>().add(
+                      FetchWeatherEvent(cityController.text.trim()),
+                    );
                   }
-                  return null;
+                },
+                child: const Text("Get Weather"),
+              ),
+              const SizedBox(height: 20),
+              BlocBuilder<WeatherBloc, WeatherState>(
+                builder: (context, state) {
+                  if (state is WeatherLoadingState) {
+                    return const CircularProgressIndicator();
+                  } else if (state is WeatherLoadedState) {
+                    return Column(
+                      children: [
+                        Text(state.weather.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                        Text("${(state.weather.main.temp - 273.15).toStringAsFixed(1)}°C", style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                        Text(state.weather.weather.first.description.toUpperCase(), style: const TextStyle(fontSize: 18)),
+                      ],
+                    );
+                  } else if (state is WeatherErrorState) {
+                    return Text(state.message, style: const TextStyle(color: Colors.red));
+                  }
+                  return const Text("Enter a city to get the weather.");
                 },
               ),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState?.validate() ?? false) {
-                  context.read<WeatherBloc>().add(
-                    FetchWeatherEvent(cityController.text.trim()),
-                  );
-                }
-              },
-              child: const Text("Get Weather"),
-            ),
-            const SizedBox(height: 20),
-            BlocBuilder<WeatherBloc, WeatherState>(
-              builder: (context, state) {
-                if (state is WeatherLoadingState) {
-                  return const CircularProgressIndicator();
-                } else if (state is WeatherLoadedState) {
-                  return Column(
-                    children: [
-                      Text(state.weather.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                      Text("${(state.weather.main.temp - 273.15).toStringAsFixed(1)}°C", style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
-                      Text(state.weather.weather.first.description.toUpperCase(), style: const TextStyle(fontSize: 18)),
-                    ],
-                  );
-                } else if (state is WeatherErrorState) {
-                  return Text(state.message, style: const TextStyle(color: Colors.red));
-                }
-                return const Text("Enter a city to get the weather.");
-              },
-            ),
-          ],
+              const SizedBox(height: 50),
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    context.read<WeatherBloc>().add(
+                      FetchForecastEvent(cityController.text.trim()),
+                    );
+                  }
+                },
+                child: const Text("Get Forecast"),
+              ),
+              const SizedBox(height: 20),
+              BlocBuilder<WeatherBloc, WeatherState>(
+                builder: (context, state) {
+                  if (state is ForecastLoadingState) {
+                    return const CircularProgressIndicator();
+                  } else if (state is ForecastLoadedState) {
+                    return Column(
+                      children: state.forecast.list.map((forecast) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Text(formatDate(forecast.dt), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            ListTile(
+                              title: Text("Temperature: ${(forecast.main.temp - 273.15).toStringAsFixed(1)}°C"),
+                              subtitle: Text("Sky: ${forecast.weather.first.description.toUpperCase()}"),
+                            ),
+                            const Divider(),
+                          ],
+                        );
+                      }).toList(),
+                    );
+                  } else if (state is ForecastErrorState) {
+                    return Text(state.message, style: const TextStyle(color: Colors.red));
+                  }
+                  return const Text("Enter a city to get the Forecast.");
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

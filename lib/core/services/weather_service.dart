@@ -1,3 +1,4 @@
+import 'package:myweather/core/models/forecast_model.dart';
 import 'package:myweather/core/models/weather_model.dart';
 import 'package:myweather/core/services/base_service.dart';
 
@@ -13,5 +14,13 @@ class WeatherService {
       throw response.data['message'] ?? "Error fetching weather data";
     }
     return WeatherModel.fromJson(response.data);
+  }
+
+  Future<ForecastModel> fetchForecast(String city) async {
+    final response = await baseService.get("forecast", queryParameters: {"q": city, "cnt": 10, "appid": apiKey});
+    if (response.statusCode != 200) {
+      throw response.data['message'] ?? "Error fetching forecast data";
+    }
+    return ForecastModel.fromJson(response.data);
   }
 }
